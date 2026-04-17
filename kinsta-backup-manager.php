@@ -1,10 +1,14 @@
 <?php
 /**
  * Plugin Name: Kinsta Backup Manager
- * Description: Manage Kinsta site backups from WordPress via the Kinsta API (list, manual backup, restore, delete).
- * Version: 1.0.0
- * Author: Site Owner
- * License: GPL v2 or later
+ * Plugin URI: https://github.com/PineDigitalCo/kinsta-backup-manager
+ * Description: Manage Kinsta Site Backups From WordPress
+ * Version: 1.0.1
+ * Author: Pine Digital
+ * Author URI: https://pinedigital.co
+ * License: MIT License
+ * License URI: https://opensource.org/licenses/MIT
+ * Text Domain: kinsta-backup-manager
  * GitHub Plugin URI: https://github.com/PineDigitalCo/kinsta-backup-manager
  * Primary Branch: main
  * Requires at least: 6.0
@@ -19,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'KINSTA_BM_VERSION', '1.0.0' );
+define( 'KINSTA_BM_VERSION', '1.0.1' );
 define( 'KINSTA_BM_PLUGIN_FILE', __FILE__ );
 define( 'KINSTA_BM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 

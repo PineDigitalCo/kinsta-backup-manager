@@ -2,7 +2,7 @@
 	"name": "pinedigitalco/kinsta-backup-manager",
 	"description": "Manage Kinsta site backups from WordPress via the Kinsta API.",
 	"type": "wordpress-plugin",
-	"license": "GPL-2.0-or-later",
+	"license": "MIT",
 	"require": {
 		"php": ">=7.4"
 	},
