@@ -136,7 +136,8 @@ final class Kinsta_BM_Admin {
 	}
 
 	public function handle_post(): void {
-		if ( ( $_SERVER['REQUEST_METHOD'] ?? '' ) !== 'POST' ) {
+		$method = isset( $_SERVER['REQUEST_METHOD'] ) ? wp_unslash( $_SERVER['REQUEST_METHOD'] ) : '';
+		if ( 'POST' !== $method ) {
 			return;
 		}
 		if ( ! isset( $_POST['kinsta_bm_action'] ) || ! is_string( $_POST['kinsta_bm_action'] ) ) {
