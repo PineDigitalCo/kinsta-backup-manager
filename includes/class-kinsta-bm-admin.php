@@ -35,6 +35,7 @@ final class Kinsta_BM_Admin {
 		add_action( 'admin_menu', array( $this, 'register_menu' ) );
 		add_action( 'admin_init', array( $this, 'handle_post' ) );
 		add_action( 'admin_notices', array( $this, 'render_admin_notices' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
 	}
 
 	public function register_menu(): void {
@@ -45,6 +46,38 @@ final class Kinsta_BM_Admin {
 			self::MENU_SLUG,
 			array( $this, 'render_page' )
 		);
+	}
+
+	public function enqueue_admin_scripts( string $hook ): void {
+		if ( $hook !== 'tools_page_' . self::MENU_SLUG ) {
+			return;
+		}
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+		$sites = $this->load_sorted_sites_for_settings();
+		if ( empty( $sites ) ) {
+			return;
+		}
+		$plugin_file = dirname( __DIR__ ) . '/kinsta-backup-manager.php';
+		$script_rel  = 'assets/kinsta-bm-settings.js';
+		$script_path = dirname( __DIR__ ) . '/' . $script_rel;
+		$url         = plugins_url( $script_rel, $plugin_file );
+		$ver         = is_readable( $script_path ) ? (string) filemtime( $script_path ) : '1.0';
+		wp_register_script( 'kinsta-bm-settings', $url, array(), $ver, true );
+		wp_localize_script(
+			'kinsta-bm-settings',
+			'kinstaBmSettings',
+			array(
+				'sites' => $this->build_sites_env_payload( $sites ),
+				'i18n'  => array(
+					'select'         => __( '— Select —', 'kinsta-backup-manager' ),
+					'envPlaceholder' => __( 'Environment UUID', 'kinsta-backup-manager' ),
+					'noEnvsHint'     => __( 'No environments in cached site list. Re-save settings after selecting the site, or enter the environment UUID.', 'kinsta-backup-manager' ),
+				),
+			)
+		);
+		wp_enqueue_script( 'kinsta-bm-settings' );
 	}
 
 	public function render_admin_notices(): void {
@@ -348,24 +381,20 @@ final class Kinsta_BM_Admin {
 		$env_id     = (string) get_option( 'kinsta_bm_env_id', '' );
 		$notify_id  = (string) get_option( 'kinsta_bm_default_notify_user_id', '' );
 
-		$sites        = array();
-		$environments = array();
-		$users        = array();
+		$sites          = $this->load_sorted_sites_for_settings();
+		$environments   = array();
+		$users          = array();
+
+		foreach ( $sites as $s ) {
+			if ( (string) $s['id'] === $site_id && ! empty( $s['environments'] ) ) {
+				$environments = $s['environments'];
+				break;
+			}
+		}
 
 		$api = $this->get_client_if_configured();
 		if ( null !== $api && $company_id !== '' ) {
-			$sites = $this->get_cached_sites( $api, $company_id );
-			foreach ( $sites as $s ) {
-				if ( (string) $s['id'] === $site_id && ! empty( $s['environments'] ) ) {
-					$environments = $s['environments'];
-					break;
-				}
-			}
 			$users = $this->get_cached_company_users( $api, $company_id );
-		}
-
-		if ( ! empty( $sites ) ) {
-			$sites = $this->sort_sites_for_display( $sites );
 		}
 
 		$key_constant = kinsta_bm_get_config_api_key() !== '';
@@ -410,6 +439,7 @@ final class Kinsta_BM_Admin {
 		echo '</td></tr>';
 
 		echo '<tr><th scope="row">' . esc_html__( 'Environment', 'kinsta-backup-manager' ) . '</th><td>';
+		echo '<div id="kinsta_bm_env_field_wrap">';
 		if ( empty( $environments ) && $site_id !== '' ) {
 			echo '<p class="description">' . esc_html__( 'No environments in cached site list. Re-save settings after selecting the site, or enter the environment UUID.', 'kinsta-backup-manager' ) . '</p>';
 		}
@@ -426,8 +456,9 @@ final class Kinsta_BM_Admin {
 			}
 			echo '</select>';
 		} else {
-			echo '<input type="text" class="regular-text" name="kinsta_bm_env_id" value="' . esc_attr( $env_id ) . '" placeholder="' . esc_attr__( 'Environment UUID', 'kinsta-backup-manager' ) . '" />';
+			echo '<input type="text" class="regular-text" name="kinsta_bm_env_id" id="kinsta_bm_env_id" value="' . esc_attr( $env_id ) . '" placeholder="' . esc_attr__( 'Environment UUID', 'kinsta-backup-manager' ) . '" />';
 		}
+		echo '</div>';
 		echo '<p class="description">' . esc_html__( 'Backups and manual backup actions use this environment.', 'kinsta-backup-manager' ) . '</p>';
 		echo '</td></tr>';
 
@@ -462,6 +493,45 @@ final class Kinsta_BM_Admin {
 		echo '</table>';
 		submit_button( __( 'Save settings', 'kinsta-backup-manager' ) );
 		echo '</form>';
+	}
+
+	/**
+	 * @return list<array{id:string,name:string,display_name:string,environments:list<array{id:string,name:string,display_name:string}>}>
+	 */
+	private function load_sorted_sites_for_settings(): array {
+		$sites      = array();
+		$company_id = (string) get_option( 'kinsta_bm_company_id', '' );
+		$api        = $this->get_client_if_configured();
+		if ( null !== $api && $company_id !== '' ) {
+			$sites = $this->get_cached_sites( $api, $company_id );
+		}
+		if ( ! empty( $sites ) ) {
+			$sites = $this->sort_sites_for_display( $sites );
+		}
+		return $sites;
+	}
+
+	/**
+	 * @param list<array{id:string,name:string,display_name:string,environments:list<array{id:string,name:string,display_name:string}>}> $sites
+	 * @return list<array{id:string,environments:list<array{id:string,name:string,display_name:string}>}>
+	 */
+	private function build_sites_env_payload( array $sites ): array {
+		$out = array();
+		foreach ( $sites as $s ) {
+			$envs = array();
+			foreach ( $s['environments'] as $e ) {
+				$envs[] = array(
+					'id'           => (string) $e['id'],
+					'name'         => (string) $e['name'],
+					'display_name' => (string) $e['display_name'],
+				);
+			}
+			$out[] = array(
+				'id'            => (string) $s['id'],
+				'environments'  => $envs,
+			);
+		}
+		return $out;
 	}
 
 	/**
