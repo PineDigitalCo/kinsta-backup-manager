@@ -362,6 +362,10 @@ final class Kinsta_BM_Admin {
 			$users = $this->get_cached_company_users( $api, $company_id );
 		}
 
+		if ( ! empty( $sites ) ) {
+			$sites = $this->sort_sites_for_display( $sites );
+		}
+
 		$key_constant = kinsta_bm_get_config_api_key() !== '';
 
 		echo '<p class="description">';
@@ -483,6 +487,22 @@ final class Kinsta_BM_Admin {
 		if ( $company_id !== '' ) {
 			delete_transient( self::TRANSIENT_SITES_PREFIX . md5( $company_id ) );
 		}
+	}
+
+	/**
+	 * @param list<array{id:string,name:string,display_name:string,environments:list<array{id:string,name:string,display_name:string}>}> $sites
+	 * @return list<array{id:string,name:string,display_name:string,environments:list<array{id:string,name:string,display_name:string}>}>
+	 */
+	private function sort_sites_for_display( array $sites ): array {
+		usort(
+			$sites,
+			static function ( array $a, array $b ): int {
+				$la = $a['display_name'] !== '' ? $a['display_name'] : $a['name'];
+				$lb = $b['display_name'] !== '' ? $b['display_name'] : $b['name'];
+				return strnatcasecmp( $la, $lb );
+			}
+		);
+		return $sites;
 	}
 
 	/**
