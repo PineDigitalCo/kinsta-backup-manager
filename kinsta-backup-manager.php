@@ -14,6 +14,8 @@
  * Requires at least: 6.0
  * Requires PHP: 7.4
  *
+ * Copyright (C) 2026 Pine Digital
+ *
  * @package Kinsta_BM
  */
 
