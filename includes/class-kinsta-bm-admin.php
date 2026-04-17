@@ -628,16 +628,16 @@ final class Kinsta_BM_Admin {
 
 		$backups = $this->get_cached_backups( $api, $env_id );
 
-		echo '<h2>' . esc_html__( 'Create manual backup', 'kinsta-backup-manager' ) . '</h2>';
+		echo '<h2>' . esc_html__( 'Create Manual Backup', 'kinsta-backup-manager' ) . '</h2>';
 		echo '<form method="post" style="margin-bottom:2em">';
 		wp_nonce_field( self::NONCE, self::NONCE );
 		echo '<input type="hidden" name="kinsta_bm_action" value="create_manual_backup" />';
 		echo '<p><label>' . esc_html__( 'Optional tag', 'kinsta-backup-manager' ) . ' ';
 		echo '<input type="text" name="kinsta_bm_backup_tag" class="regular-text" maxlength="120" /></label></p>';
-		submit_button( __( 'Create manual backup', 'kinsta-backup-manager' ), 'secondary' );
+		submit_button( __( 'Create Manual Backup', 'kinsta-backup-manager' ), 'secondary' );
 		echo '</form>';
 
-		echo '<h2>' . esc_html__( 'Backups for selected environment', 'kinsta-backup-manager' ) . '</h2>';
+		echo '<h2>' . esc_html__( 'Backups for This Environment', 'kinsta-backup-manager' ) . '</h2>';
 		if ( null === $backups ) {
 			echo '<p>' . esc_html__( 'Could not load backups. Check API permissions and environment ID.', 'kinsta-backup-manager' ) . '</p>';
 			return;
@@ -725,7 +725,7 @@ final class Kinsta_BM_Admin {
 
 		echo '</tbody></table>';
 
-		echo '<h2>' . esc_html__( 'Check async operation', 'kinsta-backup-manager' ) . '</h2>';
+		echo '<h2>' . esc_html__( 'Check Async Operation', 'kinsta-backup-manager' ) . '</h2>';
 		echo '<form method="post" class="inline">';
 		wp_nonce_field( self::NONCE, self::NONCE );
 		echo '<input type="hidden" name="kinsta_bm_action" value="check_operation" />';
