@@ -148,7 +148,7 @@ final class Kinsta_BM_Admin {
 	private function handle_save_settings(): void {
 		$token = $this->get_api_token_for_edit();
 		if ( $token === '' ) {
-			$this->set_flash( __( 'API Key is required (or define KINSTA_API_KEY in wp-config.php).', 'kinsta-backup-manager' ), 'error' );
+			$this->set_flash( __( 'API key is required (or define KINSTA_API_KEY in wp-config.php).', 'kinsta-backup-manager' ), 'error' );
 			return;
 		}
 
@@ -167,7 +167,7 @@ final class Kinsta_BM_Admin {
 		if ( kinsta_bm_get_config_api_key() === '' && isset( $_POST['kinsta_bm_api_key'] ) && is_string( $_POST['kinsta_bm_api_key'] ) && $_POST['kinsta_bm_api_key'] !== '' ) {
 			$enc = Kinsta_BM_Crypto::encrypt( sanitize_text_field( wp_unslash( $_POST['kinsta_bm_api_key'] ) ) );
 			if ( false === $enc ) {
-				$this->set_flash( __( 'Could not encrypt the API Key. Ensure PHP OpenSSL is available.', 'kinsta-backup-manager' ), 'error' );
+				$this->set_flash( __( 'Could not encrypt the API key. Ensure PHP OpenSSL is available.', 'kinsta-backup-manager' ), 'error' );
 				return;
 			}
 			update_option( 'kinsta_bm_api_key_cipher', $enc, false );
@@ -396,9 +396,9 @@ final class Kinsta_BM_Admin {
 		echo '<table class="form-table" role="presentation">';
 
 		if ( $key_constant ) {
-			echo '<tr><th>' . esc_html__( 'API Key', 'kinsta-backup-manager' ) . '</th><td><em>' . esc_html__( 'Set via KINSTA_API_KEY in wp-config.php', 'kinsta-backup-manager' ) . '</em></td></tr>';
+			echo '<tr><th>' . esc_html__( 'API key', 'kinsta-backup-manager' ) . '</th><td><em>' . esc_html__( 'Set via KINSTA_API_KEY in wp-config.php', 'kinsta-backup-manager' ) . '</em></td></tr>';
 		} else {
-			echo '<tr><th scope="row"><label for="kinsta_bm_api_key">' . esc_html__( 'API Key', 'kinsta-backup-manager' ) . '</label></th><td>';
+			echo '<tr><th scope="row"><label for="kinsta_bm_api_key">' . esc_html__( 'API key', 'kinsta-backup-manager' ) . '</label></th><td>';
 			echo '<input type="password" class="regular-text" id="kinsta_bm_api_key" name="kinsta_bm_api_key" autocomplete="off" placeholder="' . esc_attr__( 'Paste key to add or replace', 'kinsta-backup-manager' ) . '" />';
 			echo '<p class="description">' . esc_html__( 'Leave blank to keep the stored key. Generate keys in MyKinsta under Company settings → API Keys.', 'kinsta-backup-manager' ) . '</p>';
 			echo '</td></tr>';
@@ -406,7 +406,7 @@ final class Kinsta_BM_Admin {
 
 		echo '<tr><th scope="row">' . esc_html__( 'WordPress Site', 'kinsta-backup-manager' ) . '</th><td>';
 		if ( empty( $sites ) ) {
-			echo '<p class="description">' . esc_html__( 'Save a valid API Key to load sites.', 'kinsta-backup-manager' ) . '</p>';
+			echo '<p class="description">' . esc_html__( 'Save a valid API key to load sites.', 'kinsta-backup-manager' ) . '</p>';
 			echo '<input type="text" class="regular-text" name="kinsta_bm_site_id" value="' . esc_attr( $site_id ) . '" placeholder="' . esc_attr__( 'Site UUID', 'kinsta-backup-manager' ) . '" />';
 		} else {
 			echo '<select name="kinsta_bm_site_id" id="kinsta_bm_site_id">';
@@ -578,7 +578,7 @@ final class Kinsta_BM_Admin {
 		$api = $this->get_client_if_configured();
 		if ( null === $api ) {
 			echo '<div class="notice notice-warning"><p>';
-			echo esc_html__( 'Configure your API Key under the Settings tab.', 'kinsta-backup-manager' );
+			echo esc_html__( 'Configure your API key under the Settings tab.', 'kinsta-backup-manager' );
 			echo '</p></div>';
 			return;
 		}
@@ -946,7 +946,7 @@ final class Kinsta_BM_Admin {
 	private function api_or_bail(): ?Kinsta_BM_API {
 		$api = $this->get_client_if_configured();
 		if ( null === $api ) {
-			$this->set_flash( __( 'API Key not configured.', 'kinsta-backup-manager' ), 'error' );
+			$this->set_flash( __( 'API key not configured.', 'kinsta-backup-manager' ), 'error' );
 			return null;
 		}
 		return $api;
