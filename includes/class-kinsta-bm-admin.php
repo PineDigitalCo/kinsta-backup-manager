@@ -385,7 +385,7 @@ final class Kinsta_BM_Admin {
 			echo '</td></tr>';
 		}
 
-		echo '<tr><th scope="row">' . esc_html__( 'WordPress site', 'kinsta-backup-manager' ) . '</th><td>';
+		echo '<tr><th scope="row">' . esc_html__( 'WordPress Site', 'kinsta-backup-manager' ) . '</th><td>';
 		if ( empty( $sites ) ) {
 			echo '<p class="description">' . esc_html__( 'Save a valid API key to load sites.', 'kinsta-backup-manager' ) . '</p>';
 			echo '<input type="text" class="regular-text" name="kinsta_bm_site_id" value="' . esc_attr( $site_id ) . '" placeholder="' . esc_attr__( 'Site UUID', 'kinsta-backup-manager' ) . '" />';
