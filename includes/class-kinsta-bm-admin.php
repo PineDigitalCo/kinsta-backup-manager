@@ -253,8 +253,21 @@ final class Kinsta_BM_Admin {
 		$backup_id = isset( $_POST['kinsta_bm_backup_id'] ) ? absint( $_POST['kinsta_bm_backup_id'] ) : 0;
 		$target    = isset( $_POST['kinsta_bm_target_env_id'] ) ? sanitize_text_field( wp_unslash( $_POST['kinsta_bm_target_env_id'] ) ) : '';
 		$notify    = isset( $_POST['kinsta_bm_notify_user_id'] ) ? sanitize_text_field( wp_unslash( $_POST['kinsta_bm_notify_user_id'] ) ) : '';
-		if ( $backup_id < 1 || $target === '' || $notify === '' ) {
-			$this->set_flash( __( 'Restore requires backup, target environment, and notify user.', 'kinsta-backup-manager' ), 'error' );
+		if ( $notify === '' ) {
+			$notify = $this->resolve_restore_notified_user_id( $api );
+		}
+		if ( $backup_id < 1 || $target === '' ) {
+			$this->set_flash( __( 'Restore requires a backup and target environment.', 'kinsta-backup-manager' ), 'error' );
+			return;
+		}
+		if ( $notify === '' ) {
+			$this->set_flash(
+				__(
+					'Could not determine which company user should receive restore notifications. Ensure your WordPress user email matches a MyKinsta company user, or that the company has only one user.',
+					'kinsta-backup-manager'
+				),
+				'error'
+			);
 			return;
 		}
 
@@ -600,6 +613,40 @@ final class Kinsta_BM_Admin {
 		return $out;
 	}
 
+	/**
+	 * Picks notified_user_id for restore when the form does not submit one (UI removed).
+	 *
+	 * @return string Non-empty Kinsta user UUID, or empty string if not resolved.
+	 */
+	private function resolve_restore_notified_user_id( Kinsta_BM_API $api ): string {
+		$company_id = (string) get_option( 'kinsta_bm_company_id', '' );
+		if ( $company_id === '' ) {
+			return '';
+		}
+		$users    = $this->get_cached_company_users( $api, $company_id );
+		$with_ids = array();
+		foreach ( $users as $u ) {
+			if ( $u['id'] !== '' ) {
+				$with_ids[] = $u;
+			}
+		}
+		if ( count( $with_ids ) === 1 ) {
+			return $with_ids[0]['id'];
+		}
+		$current = wp_get_current_user();
+		$email   = strtolower( trim( $current->user_email ) );
+		if ( $email === '' ) {
+			return '';
+		}
+		foreach ( $with_ids as $u ) {
+			$u_email = strtolower( trim( $u['email'] ) );
+			if ( $u_email !== '' && $u_email === $email ) {
+				return $u['id'];
+			}
+		}
+		return '';
+	}
+
 	private function render_backups_tab(): void {
 		$api = $this->get_client_if_configured();
 		if ( null === $api ) {
@@ -620,12 +667,7 @@ final class Kinsta_BM_Admin {
 		$site_id = (string) get_option( 'kinsta_bm_site_id', '' );
 		$targets = $this->get_restore_targets( $api, $site_id );
 
-		$company_id   = (string) get_option( 'kinsta_bm_company_id', '' );
-		$notify_users = array();
-		if ( $company_id !== '' ) {
-			$notify_users = $this->get_cached_company_users( $api, $company_id );
-		}
-
+		$company_id = (string) get_option( 'kinsta_bm_company_id', '' );
 		$backups_heading_labels = $this->resolve_backups_heading_labels( $api, $company_id, $site_id, $env_id, $targets );
 
 		$backups = $this->get_cached_backups( $api, $env_id );
@@ -696,21 +738,6 @@ final class Kinsta_BM_Admin {
 				);
 			}
 			echo '</select></label></p>';
-			echo '<p><label>' . esc_html__( 'Notify user', 'kinsta-backup-manager' ) . '<br />';
-			if ( ! empty( $notify_users ) ) {
-				echo '<select name="kinsta_bm_notify_user_id">';
-				echo '<option value="">' . esc_html__( '— Select —', 'kinsta-backup-manager' ) . '</option>';
-				foreach ( $notify_users as $u ) {
-					printf(
-						'<option value="%1$s">%2$s</option>',
-						esc_attr( $u['id'] ),
-						esc_html( $u['name'] . ' <' . $u['email'] . '>' )
-					);
-				}
-				echo '</select></label></p>';
-			} else {
-				echo '<input type="text" class="regular-text" name="kinsta_bm_notify_user_id" value="" placeholder="' . esc_attr__( 'User UUID', 'kinsta-backup-manager' ) . '" /></label></p>';
-			}
 			if ( current_user_can( 'kinsta_bm_restore_live' ) ) {
 				echo '<p><label>' . esc_html__( 'If restoring to Live, type RESTORE', 'kinsta-backup-manager' ) . '<br />';
 				echo '<input type="text" name="kinsta_bm_confirm_live" class="regular-text" autocomplete="off" /></label></p>';
