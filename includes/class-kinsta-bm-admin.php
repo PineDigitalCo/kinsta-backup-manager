@@ -84,6 +84,8 @@ final class Kinsta_BM_Admin {
 		$redirect = admin_url( 'tools.php?page=' . self::MENU_SLUG );
 		if ( isset( $_POST['kinsta_bm_tab'] ) && $_POST['kinsta_bm_tab'] === 'settings' ) {
 			$redirect = add_query_arg( 'tab', 'settings', $redirect );
+		} elseif ( in_array( $action, array( 'create_manual_backup', 'restore_backup', 'delete_backup', 'check_operation' ), true ) ) {
+			$redirect = add_query_arg( 'tab', 'backups', $redirect );
 		}
 
 		switch ( $action ) {
@@ -310,7 +312,7 @@ final class Kinsta_BM_Admin {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'kinsta-backup-manager' ) );
 		}
 
-		$tab = isset( $_GET['tab'] ) && $_GET['tab'] === 'settings' ? 'settings' : 'backups';
+		$tab = isset( $_GET['tab'] ) && $_GET['tab'] === 'backups' ? 'backups' : 'settings';
 
 		echo '<div class="wrap">';
 		echo '<h1>' . esc_html__( 'Kinsta Backups', 'kinsta-backup-manager' ) . '</h1>';
@@ -320,14 +322,14 @@ final class Kinsta_BM_Admin {
 		printf(
 			'<a href="%1$s" class="nav-tab%3$s">%2$s</a>',
 			esc_url( $base ),
-			esc_html__( 'Backups', 'kinsta-backup-manager' ),
-			$tab === 'backups' ? ' nav-tab-active' : ''
+			esc_html__( 'Settings', 'kinsta-backup-manager' ),
+			$tab === 'settings' ? ' nav-tab-active' : ''
 		);
 		printf(
 			'<a href="%1$s" class="nav-tab%3$s">%2$s</a>',
-			esc_url( add_query_arg( 'tab', 'settings', $base ) ),
-			esc_html__( 'Settings', 'kinsta-backup-manager' ),
-			$tab === 'settings' ? ' nav-tab-active' : ''
+			esc_url( add_query_arg( 'tab', 'backups', $base ) ),
+			esc_html__( 'Backups', 'kinsta-backup-manager' ),
+			$tab === 'backups' ? ' nav-tab-active' : ''
 		);
 		echo '</h2>';
 
