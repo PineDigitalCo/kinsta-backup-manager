@@ -43,6 +43,10 @@ No. It is a convenience layer in WordPress to trigger and monitor backup operati
 
 Only users with the `manage_options` capability and the `kinsta_bm_restore_live` capability can restore to the live environment. Administrators receive that capability on plugin activation.
 
+= How do I run PHPStan or work on the plugin from Git? =
+
+Run `composer install` in the plugin directory, then `composer analyse`. Generated `vendor/` is for local development only and must not be included in distributable plugin packages.
+
 == Changelog ==
 
 = 1.0.1 =

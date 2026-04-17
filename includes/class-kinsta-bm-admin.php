@@ -153,9 +153,10 @@ final class Kinsta_BM_Admin {
 			return;
 		}
 		$action = sanitize_key( $_POST['kinsta_bm_action'] );
+		$post   = wp_unslash( $_POST );
 
 		$redirect = admin_url( 'tools.php?page=' . self::MENU_SLUG );
-		if ( isset( $_POST['kinsta_bm_tab'] ) && $_POST['kinsta_bm_tab'] === 'settings' ) {
+		if ( isset( $post['kinsta_bm_tab'] ) && $post['kinsta_bm_tab'] === 'settings' ) {
 			$redirect = add_query_arg( 'tab', 'settings', $redirect );
 		} elseif ( in_array( $action, array( 'create_manual_backup', 'restore_backup', 'delete_backup', 'check_operation' ), true ) ) {
 			$redirect = add_query_arg( 'tab', 'backups', $redirect );
@@ -163,19 +164,19 @@ final class Kinsta_BM_Admin {
 
 		switch ( $action ) {
 			case 'save_settings':
-				$this->handle_save_settings();
+				$this->handle_save_settings( $post );
 				break;
 			case 'create_manual_backup':
-				$this->handle_create_manual_backup();
+				$this->handle_create_manual_backup( $post );
 				break;
 			case 'restore_backup':
-				$this->handle_restore_backup();
+				$this->handle_restore_backup( $post );
 				break;
 			case 'delete_backup':
-				$this->handle_delete_backup();
+				$this->handle_delete_backup( $post );
 				break;
 			case 'check_operation':
-				$this->handle_check_operation();
+				$this->handle_check_operation( $post );
 				break;
 			default:
 				return;
@@ -185,8 +186,11 @@ final class Kinsta_BM_Admin {
 		exit;
 	}
 
-	private function handle_save_settings(): void {
-		$token = $this->get_api_token_for_edit();
+	/**
+	 * @param array<string, mixed> $post Unslashed POST payload (nonce verified in handle_post).
+	 */
+	private function handle_save_settings( array $post ): void {
+		$token = $this->get_api_token_for_edit( $post );
 		if ( $token === '' ) {
 			$this->set_flash( __( 'API key is required (or define KINSTA_API_KEY in wp-config.php).', 'kinsta-backup-manager' ), 'error' );
 			return;
@@ -204,8 +208,8 @@ final class Kinsta_BM_Admin {
 
 		$company_id = sanitize_text_field( (string) $valid['body']['company'] );
 
-		if ( kinsta_bm_get_config_api_key() === '' && isset( $_POST['kinsta_bm_api_key'] ) && is_string( $_POST['kinsta_bm_api_key'] ) && $_POST['kinsta_bm_api_key'] !== '' ) {
-			$enc = Kinsta_BM_Crypto::encrypt( sanitize_text_field( wp_unslash( $_POST['kinsta_bm_api_key'] ) ) );
+		if ( kinsta_bm_get_config_api_key() === '' && isset( $post['kinsta_bm_api_key'] ) && is_string( $post['kinsta_bm_api_key'] ) && $post['kinsta_bm_api_key'] !== '' ) {
+			$enc = Kinsta_BM_Crypto::encrypt( sanitize_text_field( $post['kinsta_bm_api_key'] ) );
 			if ( false === $enc ) {
 				$this->set_flash( __( 'Could not encrypt the API key. Ensure PHP OpenSSL is available.', 'kinsta-backup-manager' ), 'error' );
 				return;
@@ -215,11 +219,11 @@ final class Kinsta_BM_Admin {
 
 		update_option( 'kinsta_bm_company_id', $company_id, false );
 
-		if ( isset( $_POST['kinsta_bm_site_id'] ) && is_string( $_POST['kinsta_bm_site_id'] ) ) {
-			update_option( 'kinsta_bm_site_id', sanitize_text_field( wp_unslash( $_POST['kinsta_bm_site_id'] ) ), false );
+		if ( isset( $post['kinsta_bm_site_id'] ) && is_string( $post['kinsta_bm_site_id'] ) ) {
+			update_option( 'kinsta_bm_site_id', sanitize_text_field( $post['kinsta_bm_site_id'] ), false );
 		}
-		if ( isset( $_POST['kinsta_bm_env_id'] ) && is_string( $_POST['kinsta_bm_env_id'] ) ) {
-			update_option( 'kinsta_bm_env_id', sanitize_text_field( wp_unslash( $_POST['kinsta_bm_env_id'] ) ), false );
+		if ( isset( $post['kinsta_bm_env_id'] ) && is_string( $post['kinsta_bm_env_id'] ) ) {
+			update_option( 'kinsta_bm_env_id', sanitize_text_field( $post['kinsta_bm_env_id'] ), false );
 		}
 
 		delete_transient( self::TRANSIENT_USERS_KEY );
@@ -229,7 +233,10 @@ final class Kinsta_BM_Admin {
 		$this->set_flash( __( 'Settings saved.', 'kinsta-backup-manager' ), 'success' );
 	}
 
-	private function handle_create_manual_backup(): void {
+	/**
+	 * @param array<string, mixed> $post Unslashed POST payload (nonce verified in handle_post).
+	 */
+	private function handle_create_manual_backup( array $post ): void {
 		$api = $this->api_or_bail();
 		if ( null === $api ) {
 			return;
@@ -240,8 +247,8 @@ final class Kinsta_BM_Admin {
 			return;
 		}
 		$payload = array();
-		if ( isset( $_POST['kinsta_bm_backup_tag'] ) && is_string( $_POST['kinsta_bm_backup_tag'] ) ) {
-			$tag = sanitize_text_field( wp_unslash( $_POST['kinsta_bm_backup_tag'] ) );
+		if ( isset( $post['kinsta_bm_backup_tag'] ) && is_string( $post['kinsta_bm_backup_tag'] ) ) {
+			$tag = sanitize_text_field( $post['kinsta_bm_backup_tag'] );
 			if ( $tag !== '' ) {
 				$payload['tag'] = $tag;
 			}
@@ -251,14 +258,17 @@ final class Kinsta_BM_Admin {
 		$this->purge_backup_transients();
 	}
 
-	private function handle_restore_backup(): void {
+	/**
+	 * @param array<string, mixed> $post Unslashed POST payload (nonce verified in handle_post).
+	 */
+	private function handle_restore_backup( array $post ): void {
 		$api = $this->api_or_bail();
 		if ( null === $api ) {
 			return;
 		}
-		$backup_id = isset( $_POST['kinsta_bm_backup_id'] ) ? absint( $_POST['kinsta_bm_backup_id'] ) : 0;
-		$target    = isset( $_POST['kinsta_bm_target_env_id'] ) ? sanitize_text_field( wp_unslash( $_POST['kinsta_bm_target_env_id'] ) ) : '';
-		$notify    = isset( $_POST['kinsta_bm_notify_user_id'] ) ? sanitize_text_field( wp_unslash( $_POST['kinsta_bm_notify_user_id'] ) ) : '';
+		$backup_id = isset( $post['kinsta_bm_backup_id'] ) ? absint( $post['kinsta_bm_backup_id'] ) : 0;
+		$target    = isset( $post['kinsta_bm_target_env_id'] ) ? sanitize_text_field( $post['kinsta_bm_target_env_id'] ) : '';
+		$notify    = isset( $post['kinsta_bm_notify_user_id'] ) ? sanitize_text_field( $post['kinsta_bm_notify_user_id'] ) : '';
 		if ( $notify === '' ) {
 			$notify = $this->resolve_restore_notified_user_id( $api );
 		}
@@ -294,7 +304,7 @@ final class Kinsta_BM_Admin {
 				$this->set_flash( __( 'You do not have permission to restore to the live environment.', 'kinsta-backup-manager' ), 'error' );
 				return;
 			}
-			$confirm = isset( $_POST['kinsta_bm_confirm_live'] ) ? sanitize_text_field( wp_unslash( $_POST['kinsta_bm_confirm_live'] ) ) : '';
+			$confirm = isset( $post['kinsta_bm_confirm_live'] ) ? sanitize_text_field( $post['kinsta_bm_confirm_live'] ) : '';
 			if ( $confirm !== 'RESTORE' ) {
 				$this->set_flash( __( 'Type RESTORE to confirm restoring to Live.', 'kinsta-backup-manager' ), 'error' );
 				return;
@@ -306,13 +316,16 @@ final class Kinsta_BM_Admin {
 		$this->purge_backup_transients();
 	}
 
-	private function handle_delete_backup(): void {
+	/**
+	 * @param array<string, mixed> $post Unslashed POST payload (nonce verified in handle_post).
+	 */
+	private function handle_delete_backup( array $post ): void {
 		$api = $this->api_or_bail();
 		if ( null === $api ) {
 			return;
 		}
-		$backup_id = isset( $_POST['kinsta_bm_backup_id'] ) ? absint( $_POST['kinsta_bm_backup_id'] ) : 0;
-		$confirm   = isset( $_POST['kinsta_bm_confirm_delete'] ) ? sanitize_text_field( wp_unslash( $_POST['kinsta_bm_confirm_delete'] ) ) : '';
+		$backup_id = isset( $post['kinsta_bm_backup_id'] ) ? absint( $post['kinsta_bm_backup_id'] ) : 0;
+		$confirm   = isset( $post['kinsta_bm_confirm_delete'] ) ? sanitize_text_field( $post['kinsta_bm_confirm_delete'] ) : '';
 		if ( $backup_id < 1 || (string) $backup_id !== $confirm ) {
 			$this->set_flash( __( 'Enter the backup ID to confirm deletion.', 'kinsta-backup-manager' ), 'error' );
 			return;
@@ -322,12 +335,15 @@ final class Kinsta_BM_Admin {
 		$this->purge_backup_transients();
 	}
 
-	private function handle_check_operation(): void {
+	/**
+	 * @param array<string, mixed> $post Unslashed POST payload (nonce verified in handle_post).
+	 */
+	private function handle_check_operation( array $post ): void {
 		$api = $this->api_or_bail();
 		if ( null === $api ) {
 			return;
 		}
-		$op = isset( $_POST['kinsta_bm_operation_id'] ) ? sanitize_text_field( wp_unslash( $_POST['kinsta_bm_operation_id'] ) ) : '';
+		$op = isset( $post['kinsta_bm_operation_id'] ) ? sanitize_text_field( $post['kinsta_bm_operation_id'] ) : '';
 		if ( $op === '' ) {
 			$this->set_flash( __( 'No operation ID.', 'kinsta-backup-manager' ), 'error' );
 			return;
@@ -391,7 +407,14 @@ final class Kinsta_BM_Admin {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'kinsta-backup-manager' ) );
 		}
 
-		$tab = isset( $_GET['tab'] ) && $_GET['tab'] === 'backups' ? 'backups' : 'settings';
+		$tab = 'settings';
+		// Admin nav tab is a read-only view switch (no form POST); capability is enforced above.
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended
+		if ( isset( $_GET['tab'] ) ) {
+			$tab_arg = sanitize_key( wp_unslash( $_GET['tab'] ) );
+			$tab     = ( 'backups' === $tab_arg ) ? 'backups' : 'settings';
+		}
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 		echo '<div class="wrap">';
 		echo '<h1>' . esc_html__( 'Kinsta Backups', 'kinsta-backup-manager' ) . '</h1>';
@@ -1020,15 +1043,18 @@ final class Kinsta_BM_Admin {
 		return $out;
 	}
 
-	private function get_api_token_for_edit(): string {
+	/**
+	 * @param array<string, mixed> $post Unslashed POST payload when saving settings (nonce verified in handle_post).
+	 */
+	private function get_api_token_for_edit( array $post ): string {
 		$from_config = kinsta_bm_get_config_api_key();
 		if ( $from_config !== '' ) {
 			return $from_config;
 		}
 		$cipher = (string) get_option( 'kinsta_bm_api_key_cipher', '' );
 		if ( $cipher === '' ) {
-			if ( isset( $_POST['kinsta_bm_api_key'] ) && is_string( $_POST['kinsta_bm_api_key'] ) ) {
-				return sanitize_text_field( wp_unslash( $_POST['kinsta_bm_api_key'] ) );
+			if ( isset( $post['kinsta_bm_api_key'] ) && is_string( $post['kinsta_bm_api_key'] ) ) {
+				return sanitize_text_field( $post['kinsta_bm_api_key'] );
 			}
 			return '';
 		}
@@ -1036,8 +1062,8 @@ final class Kinsta_BM_Admin {
 		if ( false === $plain || $plain === '' ) {
 			return '';
 		}
-		if ( isset( $_POST['kinsta_bm_api_key'] ) && is_string( $_POST['kinsta_bm_api_key'] ) && $_POST['kinsta_bm_api_key'] !== '' ) {
-			return sanitize_text_field( wp_unslash( $_POST['kinsta_bm_api_key'] ) );
+		if ( isset( $post['kinsta_bm_api_key'] ) && is_string( $post['kinsta_bm_api_key'] ) && $post['kinsta_bm_api_key'] !== '' ) {
+			return sanitize_text_field( $post['kinsta_bm_api_key'] );
 		}
 		return $plain;
 	}
