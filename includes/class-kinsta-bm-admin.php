@@ -16,6 +16,7 @@ final class Kinsta_BM_Admin {
 	private const MENU_SLUG = 'kinsta-backup-manager';
 	private const NONCE     = 'kinsta_bm_nonce';
 	private const TRANSIENT_BACKUPS_PREFIX = 'kinsta_bm_backups_';
+	private const TRANSIENT_SITES_PREFIX   = 'kinsta_bm_sites_';
 	private const TRANSIENT_USERS_KEY      = 'kinsta_bm_company_users';
 
 	/**
@@ -154,6 +155,7 @@ final class Kinsta_BM_Admin {
 		}
 
 		delete_transient( self::TRANSIENT_USERS_KEY );
+		$this->purge_sites_transient_for_company( $company_id );
 		$this->purge_backup_transients();
 
 		$this->set_flash( __( 'Settings saved.', 'kinsta-backup-manager' ), 'success' );
@@ -350,10 +352,7 @@ final class Kinsta_BM_Admin {
 
 		$api = $this->get_client_if_configured();
 		if ( null !== $api && $company_id !== '' ) {
-			$sites_res = $api->get_sites( $company_id, true );
-			if ( 200 === $sites_res['code'] && is_array( $sites_res['body'] ) ) {
-				$sites = $this->parse_sites_response( $sites_res['body'] );
-			}
+			$sites = $this->get_cached_sites( $api, $company_id );
 			foreach ( $sites as $s ) {
 				if ( (string) $s['id'] === $site_id && ! empty( $s['environments'] ) ) {
 					$environments = $s['environments'];
@@ -396,7 +395,7 @@ final class Kinsta_BM_Admin {
 				printf(
 					'<option value="%1$s" %3$s>%2$s</option>',
 					esc_attr( (string) $s['id'] ),
-					esc_html( (string) ( $s['display_name'] ?? $s['name'] ) ),
+					esc_html( (string) ( $s['display_name'] !== '' ? $s['display_name'] : $s['name'] ) ),
 					selected( (string) $s['id'], $site_id, false )
 				);
 			}
@@ -415,7 +414,7 @@ final class Kinsta_BM_Admin {
 				printf(
 					'<option value="%1$s" %3$s>%2$s (%1$s)</option>',
 					esc_attr( (string) $e['id'] ),
-					esc_html( (string) ( $e['display_name'] ?? $e['name'] ) ),
+					esc_html( (string) ( $e['display_name'] !== '' ? $e['display_name'] : $e['name'] ) ),
 					selected( (string) $e['id'], $env_id, false )
 				);
 			}
@@ -460,12 +459,39 @@ final class Kinsta_BM_Admin {
 	}
 
 	/**
+	 * @return list<array{id:string,name:string,display_name:string,environments:list<array{id:string,name:string,display_name:string}>}>
+	 */
+	private function get_cached_sites( Kinsta_BM_API $api, string $company_id ): array {
+		if ( $company_id === '' ) {
+			return array();
+		}
+		$key    = self::TRANSIENT_SITES_PREFIX . md5( $company_id );
+		$cached = get_transient( $key );
+		if ( false !== $cached && is_array( $cached ) ) {
+			return $this->coerce_sites_from_transient( $cached );
+		}
+		$res = $api->get_sites( $company_id, true );
+		if ( 200 !== $res['code'] || ! is_array( $res['body'] ) ) {
+			return array();
+		}
+		$sites = $this->parse_sites_response( $res['body'] );
+		set_transient( $key, $sites, 5 * MINUTE_IN_SECONDS );
+		return $sites;
+	}
+
+	private function purge_sites_transient_for_company( string $company_id ): void {
+		if ( $company_id !== '' ) {
+			delete_transient( self::TRANSIENT_SITES_PREFIX . md5( $company_id ) );
+		}
+	}
+
+	/**
 	 * @return list<array{id:string,name:string,email:string}>
 	 */
 	private function get_cached_company_users( Kinsta_BM_API $api, string $company_id ): array {
 		$cached = get_transient( self::TRANSIENT_USERS_KEY );
 		if ( false !== $cached && is_array( $cached ) ) {
-			return $cached;
+			return $this->coerce_users_from_transient( $cached );
 		}
 		$res = $api->get_company_users( $company_id );
 		if ( 200 !== $res['code'] || ! is_array( $res['body'] ) ) {
@@ -552,9 +578,10 @@ final class Kinsta_BM_Admin {
 		foreach ( $backups as $b ) {
 			$id = (int) $b['id'];
 			$type = isset( $b['type'] ) ? (string) $b['type'] : '';
-			$note = isset( $b['note'] ) && $b['note'] !== null ? (string) $b['note'] : '';
+			$note = isset( $b['note'] ) ? (string) $b['note'] : '';
 			$ts   = isset( $b['created_at'] ) ? (int) $b['created_at'] : 0;
-			$date = $ts > 0 ? wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), (int) round( $ts / 1000 ) ) : '—';
+			$date_fmt = wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), (int) round( $ts / 1000 ) );
+			$date     = ( $ts > 0 && is_string( $date_fmt ) ) ? $date_fmt : '—';
 
 			echo '<tr>';
 			echo '<td><code>' . esc_html( (string) $id ) . '</code></td>';
@@ -635,7 +662,7 @@ final class Kinsta_BM_Admin {
 		$key = self::TRANSIENT_BACKUPS_PREFIX . md5( $env_id );
 		$cached = get_transient( $key );
 		if ( false !== $cached && is_array( $cached ) ) {
-			return $cached;
+			return $this->coerce_backups_from_transient( $cached );
 		}
 		$res = $api->get_backups( $env_id );
 		if ( 200 !== $res['code'] || ! is_array( $res['body'] ) ) {
@@ -645,8 +672,9 @@ final class Kinsta_BM_Admin {
 		if ( ! is_array( $list ) ) {
 			return array();
 		}
-		set_transient( $key, $list, MINUTE_IN_SECONDS );
-		return $list;
+		$rows = $this->coerce_backups_from_transient( $list );
+		set_transient( $key, $rows, MINUTE_IN_SECONDS );
+		return $rows;
 	}
 
 	private function purge_backup_transients(): void {
@@ -667,11 +695,7 @@ final class Kinsta_BM_Admin {
 		if ( $company_id === '' ) {
 			return array();
 		}
-		$res = $api->get_sites( $company_id, true );
-		if ( 200 !== $res['code'] || ! is_array( $res['body'] ) ) {
-			return array();
-		}
-		$sites = $this->parse_sites_response( $res['body'] );
+		$sites = $this->get_cached_sites( $api, $company_id );
 		foreach ( $sites as $s ) {
 			if ( (string) $s['id'] !== $site_id ) {
 				continue;
@@ -680,8 +704,8 @@ final class Kinsta_BM_Admin {
 			foreach ( $s['environments'] as $e ) {
 				$out[] = array(
 					'id'    => (string) $e['id'],
-					'label' => (string) ( $e['display_name'] ?? $e['name'] ?? $e['id'] ),
-					'name'  => (string) ( $e['name'] ?? '' ),
+					'label' => (string) ( $e['display_name'] !== '' ? $e['display_name'] : ( $e['name'] !== '' ? $e['name'] : $e['id'] ) ),
+					'name'  => (string) $e['name'],
 				);
 			}
 			return $out;
@@ -699,6 +723,94 @@ final class Kinsta_BM_Admin {
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * @param mixed $cached
+	 * @return list<array{id:string,name:string,display_name:string,environments:list<array{id:string,name:string,display_name:string}>}>
+	 */
+	private function coerce_sites_from_transient( $cached ): array {
+		if ( ! is_array( $cached ) ) {
+			return array();
+		}
+		$out = array();
+		foreach ( $cached as $site ) {
+			if ( ! is_array( $site ) ) {
+				continue;
+			}
+			$id = isset( $site['id'] ) ? (string) $site['id'] : '';
+			if ( $id === '' ) {
+				continue;
+			}
+			$envs = array();
+			$raw  = $site['environments'] ?? array();
+			if ( is_array( $raw ) ) {
+				foreach ( $raw as $e ) {
+					if ( ! is_array( $e ) ) {
+						continue;
+					}
+					$eid = isset( $e['id'] ) ? (string) $e['id'] : '';
+					if ( $eid === '' ) {
+						continue;
+					}
+					$envs[] = array(
+						'id'           => $eid,
+						'name'         => isset( $e['name'] ) ? (string) $e['name'] : '',
+						'display_name' => isset( $e['display_name'] ) ? (string) $e['display_name'] : '',
+					);
+				}
+			}
+			$out[] = array(
+				'id'           => $id,
+				'name'         => isset( $site['name'] ) ? (string) $site['name'] : '',
+				'display_name' => isset( $site['display_name'] ) ? (string) $site['display_name'] : '',
+				'environments' => $envs,
+			);
+		}
+		return $out;
+	}
+
+	/**
+	 * @param mixed $cached
+	 * @return list<array{id:string,name:string,email:string}>
+	 */
+	private function coerce_users_from_transient( $cached ): array {
+		if ( ! is_array( $cached ) ) {
+			return array();
+		}
+		$out = array();
+		foreach ( $cached as $row ) {
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
+			$id = isset( $row['id'] ) ? (string) $row['id'] : '';
+			if ( $id === '' ) {
+				continue;
+			}
+			$out[] = array(
+				'id'    => $id,
+				'name'  => isset( $row['name'] ) ? (string) $row['name'] : '',
+				'email' => isset( $row['email'] ) ? (string) $row['email'] : '',
+			);
+		}
+		return $out;
+	}
+
+	/**
+	 * @param mixed $cached
+	 * @return list<array<string, mixed>>
+	 */
+	private function coerce_backups_from_transient( $cached ): array {
+		if ( ! is_array( $cached ) ) {
+			return array();
+		}
+		$out = array();
+		foreach ( $cached as $row ) {
+			if ( is_array( $row ) ) {
+				$out[] = $row;
+			}
+		}
+		return $out;
 	}
 
 	/**

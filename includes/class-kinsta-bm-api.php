@@ -39,8 +39,16 @@ final class Kinsta_BM_API {
 			),
 		);
 		if ( null !== $body ) {
+			$encoded = wp_json_encode( $body );
+			if ( false === $encoded ) {
+				return array(
+					'code'  => 0,
+					'body'  => null,
+					'error' => 'Could not encode request body as JSON.',
+				);
+			}
 			$args['headers']['Content-Type'] = 'application/json';
-			$args['body']                    = wp_json_encode( $body );
+			$args['body']                    = $encoded;
 		}
 
 		$response = wp_remote_request( $url, $args );
