@@ -727,7 +727,7 @@ final class Kinsta_BM_Admin {
 			wp_nonce_field( self::NONCE, self::NONCE );
 			echo '<input type="hidden" name="kinsta_bm_action" value="restore_backup" />';
 			echo '<input type="hidden" name="kinsta_bm_backup_id" value="' . esc_attr( (string) $id ) . '" />';
-			echo '<p><label>' . esc_html__( 'Target environment', 'kinsta-backup-manager' ) . '<br />';
+			echo '<p><label>' . esc_html__( 'Target Environment', 'kinsta-backup-manager' ) . '<br />';
 			echo '<select name="kinsta_bm_target_env_id">';
 			foreach ( $targets as $t ) {
 				printf(
@@ -742,7 +742,7 @@ final class Kinsta_BM_Admin {
 				echo '<p><label>' . esc_html__( 'If restoring to Live, type RESTORE', 'kinsta-backup-manager' ) . '<br />';
 				echo '<input type="text" name="kinsta_bm_confirm_live" class="regular-text" autocomplete="off" /></label></p>';
 			}
-			submit_button( __( 'Restore backup', 'kinsta-backup-manager' ), 'primary small', 'submit', false );
+			submit_button( __( 'Restore Backup', 'kinsta-backup-manager' ), 'primary small', 'submit', false );
 			echo '</form></details>';
 
 			echo '<details><summary>' . esc_html__( 'Delete', 'kinsta-backup-manager' ) . '</summary>';
@@ -750,7 +750,7 @@ final class Kinsta_BM_Admin {
 			wp_nonce_field( self::NONCE, self::NONCE );
 			echo '<input type="hidden" name="kinsta_bm_action" value="delete_backup" />';
 			echo '<input type="hidden" name="kinsta_bm_backup_id" value="' . esc_attr( (string) $id ) . '" />';
-			echo '<p><label>' . esc_html__( 'Type backup ID to confirm', 'kinsta-backup-manager' ) . '<br />';
+			echo '<p><label>' . esc_html__( 'Enter backup ID to confirm', 'kinsta-backup-manager' ) . '<br />';
 			echo '<input type="text" name="kinsta_bm_confirm_delete" class="regular-text" autocomplete="off" /></label></p>';
 			submit_button( __( 'Delete backup', 'kinsta-backup-manager' ), 'delete small', 'submit', false );
 			echo '</form></details>';
