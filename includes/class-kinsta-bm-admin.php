@@ -632,7 +632,7 @@ final class Kinsta_BM_Admin {
 		echo '<form method="post" style="margin-bottom:2em">';
 		wp_nonce_field( self::NONCE, self::NONCE );
 		echo '<input type="hidden" name="kinsta_bm_action" value="create_manual_backup" />';
-		echo '<p><label>' . esc_html__( 'Optional tag', 'kinsta-backup-manager' ) . ' ';
+		echo '<p><label>' . esc_html__( 'Add Optional Backup Note', 'kinsta-backup-manager' ) . ' ';
 		echo '<input type="text" name="kinsta_bm_backup_tag" class="regular-text" maxlength="120" /></label></p>';
 		submit_button( __( 'Create Manual Backup', 'kinsta-backup-manager' ), 'secondary' );
 		echo '</form>';
