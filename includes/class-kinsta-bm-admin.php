@@ -32,6 +32,10 @@ final class Kinsta_BM_Admin {
 	}
 
 	private function __construct() {
+		add_filter(
+			'plugin_action_links_' . plugin_basename( KINSTA_BM_PLUGIN_FILE ),
+			array( $this, 'add_plugin_action_links' )
+		);
 		add_action( 'admin_menu', array( $this, 'register_menu' ) );
 		add_action( 'admin_init', array( $this, 'maybe_remove_legacy_default_notify_option' ), 0 );
 		add_action( 'admin_init', array( $this, 'handle_post' ) );
@@ -58,6 +62,24 @@ final class Kinsta_BM_Admin {
 			self::MENU_SLUG,
 			array( $this, 'render_page' )
 		);
+	}
+
+	/**
+	 * Settings shortcut on Plugins list (manage_options only).
+	 *
+	 * @param list<string> $links Existing action link HTML fragments.
+	 * @return list<string>
+	 */
+	public function add_plugin_action_links( array $links ): array {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return $links;
+		}
+		$url = admin_url( 'tools.php?page=' . self::MENU_SLUG );
+		array_unshift(
+			$links,
+			'<a href="' . esc_url( $url ) . '">' . esc_html__( 'Settings', 'kinsta-backup-manager' ) . '</a>'
+		);
+		return $links;
 	}
 
 	public function enqueue_admin_scripts( string $hook ): void {
