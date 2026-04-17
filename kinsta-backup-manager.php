@@ -6,8 +6,8 @@
  * Version: 1.0.1
  * Author: Pine Digital
  * Author URI: https://pinedigital.co
- * License: MIT License
- * License URI: https://opensource.org/licenses/MIT
+ * License: GPLv2 or later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: kinsta-backup-manager
  * GitHub Plugin URI: https://github.com/PineDigitalCo/kinsta-backup-manager
  * Primary Branch: main
