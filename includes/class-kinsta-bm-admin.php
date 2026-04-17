@@ -142,14 +142,17 @@ final class Kinsta_BM_Admin {
 		if ( 'POST' !== $method ) {
 			return;
 		}
-		if ( ! isset( $_POST['kinsta_bm_action'] ) || ! is_string( $_POST['kinsta_bm_action'] ) ) {
+		if ( ! isset( $_POST[ self::NONCE ] ) ) {
 			return;
 		}
+		check_admin_referer( self::NONCE, self::NONCE );
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
+		if ( ! isset( $_POST['kinsta_bm_action'] ) || ! is_string( $_POST['kinsta_bm_action'] ) ) {
+			return;
+		}
 		$action = sanitize_key( $_POST['kinsta_bm_action'] );
-		check_admin_referer( self::NONCE, self::NONCE );
 
 		$redirect = admin_url( 'tools.php?page=' . self::MENU_SLUG );
 		if ( isset( $_POST['kinsta_bm_tab'] ) && $_POST['kinsta_bm_tab'] === 'settings' ) {
