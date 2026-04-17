@@ -459,14 +459,6 @@ final class Kinsta_BM_Admin {
 		echo '<p class="description">' . esc_html__( 'Backups and manual backup actions use this environment.', 'kinsta-backup-manager' ) . '</p>';
 		echo '</td></tr>';
 
-		echo '<tr><th scope="row">' . esc_html__( 'Live restore capability', 'kinsta-backup-manager' ) . '</th><td>';
-		if ( current_user_can( 'kinsta_bm_restore_live' ) ) {
-			echo '<em>' . esc_html__( 'Your account can restore to Live (after typing RESTORE on the backup screen).', 'kinsta-backup-manager' ) . '</em>';
-		} else {
-			echo '<em>' . esc_html__( 'Your account cannot restore to the Live environment.', 'kinsta-backup-manager' ) . '</em>';
-		}
-		echo '</td></tr>';
-
 		echo '</table>';
 		submit_button( __( 'Save settings', 'kinsta-backup-manager' ) );
 		echo '</form>';
