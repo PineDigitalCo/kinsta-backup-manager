@@ -730,7 +730,7 @@ final class Kinsta_BM_Admin {
 		wp_nonce_field( self::NONCE, self::NONCE );
 		echo '<input type="hidden" name="kinsta_bm_action" value="check_operation" />';
 		echo '<input type="text" name="kinsta_bm_operation_id" class="regular-text" placeholder="backups:add-manual-…" /> ';
-		submit_button( __( 'Check status', 'kinsta-backup-manager' ), 'secondary small', 'submit', false );
+		submit_button( __( 'Check Status', 'kinsta-backup-manager' ), 'secondary small', 'submit', false );
 		echo '</form>';
 		echo '<p class="description"><a href="https://my.kinsta.com/" target="_blank" rel="noopener noreferrer">' . esc_html__( 'Open MyKinsta', 'kinsta-backup-manager' ) . '</a></p>';
 	}
