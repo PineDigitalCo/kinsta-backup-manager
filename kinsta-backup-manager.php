@@ -5,6 +5,8 @@
  * Version: 1.0.0
  * Author: Site Owner
  * License: GPL v2 or later
+ * GitHub Plugin URI: https://github.com/PineDigitalCo/kinsta-backup-manager
+ * Primary Branch: main
  * Requires at least: 6.0
  * Requires PHP: 7.4
  *

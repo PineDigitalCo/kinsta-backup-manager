@@ -33,9 +33,21 @@ final class Kinsta_BM_Admin {
 
 	private function __construct() {
 		add_action( 'admin_menu', array( $this, 'register_menu' ) );
+		add_action( 'admin_init', array( $this, 'maybe_remove_legacy_default_notify_option' ), 0 );
 		add_action( 'admin_init', array( $this, 'handle_post' ) );
 		add_action( 'admin_notices', array( $this, 'render_admin_notices' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
+	}
+
+	public function maybe_remove_legacy_default_notify_option(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+		if ( false !== get_transient( 'kinsta_bm_legacy_notify_default_cleared' ) ) {
+			return;
+		}
+		delete_option( 'kinsta_bm_default_notify_user_id' );
+		set_transient( 'kinsta_bm_legacy_notify_default_cleared', '1', 10 * YEAR_IN_SECONDS );
 	}
 
 	public function register_menu(): void {
