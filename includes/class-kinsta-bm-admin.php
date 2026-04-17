@@ -626,6 +626,8 @@ final class Kinsta_BM_Admin {
 			$notify_users = $this->get_cached_company_users( $api, $company_id );
 		}
 
+		$backups_heading_labels = $this->resolve_backups_heading_labels( $api, $company_id, $site_id, $env_id, $targets );
+
 		$backups = $this->get_cached_backups( $api, $env_id );
 
 		echo '<h2>' . esc_html__( 'Create Manual Backup', 'kinsta-backup-manager' ) . '</h2>';
@@ -637,7 +639,14 @@ final class Kinsta_BM_Admin {
 		submit_button( __( 'Create Manual Backup', 'kinsta-backup-manager' ), 'secondary' );
 		echo '</form>';
 
-		echo '<h2>' . esc_html__( 'Backups for This Environment', 'kinsta-backup-manager' ) . '</h2>';
+		echo '<h2>' . esc_html(
+			sprintf(
+				/* translators: 1: Kinsta site display name or site ID, 2: environment display name or environment ID */
+				__( 'Backups for This Environment: %1$s (%2$s)', 'kinsta-backup-manager' ),
+				$backups_heading_labels['site'],
+				$backups_heading_labels['env']
+			)
+		) . '</h2>';
 		if ( null === $backups ) {
 			echo '<p>' . esc_html__( 'Could not load backups. Check API permissions and environment ID.', 'kinsta-backup-manager' ) . '</p>';
 			return;
@@ -791,6 +800,53 @@ final class Kinsta_BM_Admin {
 			return $out;
 		}
 		return array();
+	}
+
+	/**
+	 * Human-readable labels for the backups list heading (Settings-style names when cached).
+	 *
+	 * @param list<array{id:string,label:string,name:string}> $targets Restore targets for the selected site.
+	 * @return array{site:string,env:string}
+	 */
+	private function resolve_backups_heading_labels(
+		Kinsta_BM_API $api,
+		string $company_id,
+		string $site_id,
+		string $env_id,
+		array $targets
+	): array {
+		$site_label = '';
+		if ( $site_id !== '' && $company_id !== '' ) {
+			foreach ( $this->get_cached_sites( $api, $company_id ) as $s ) {
+				if ( (string) $s['id'] !== $site_id ) {
+					continue;
+				}
+				$site_label = (string) ( $s['display_name'] !== '' ? $s['display_name'] : $s['name'] );
+				if ( $site_label === '' ) {
+					$site_label = $site_id;
+				}
+				break;
+			}
+		}
+		if ( $site_label === '' ) {
+			$site_label = $site_id !== '' ? $site_id : '—';
+		}
+
+		$env_label = '';
+		foreach ( $targets as $t ) {
+			if ( $t['id'] === $env_id ) {
+				$env_label = $t['label'];
+				break;
+			}
+		}
+		if ( $env_label === '' ) {
+			$env_label = $env_id;
+		}
+
+		return array(
+			'site' => $site_label,
+			'env'  => $env_label,
+		);
 	}
 
 	/**
