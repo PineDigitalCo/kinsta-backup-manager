@@ -419,7 +419,7 @@ final class Kinsta_BM_Admin {
 		$key_constant = kinsta_bm_get_config_api_key() !== '';
 
 		echo '<p class="description">';
-		esc_html_e( 'Prefer defining KINSTA_API_KEY in wp-config.php so the key is not stored in the database. Otherwise the key is encrypted with PHP OpenSSL using WordPress salts.', 'kinsta-backup-manager' );
+		esc_html_e( 'Consider defining KINSTA_API_KEY in wp-config.php so the key is not stored in the database. Otherwise the key is encrypted with PHP OpenSSL using WordPress salts.', 'kinsta-backup-manager' );
 		echo '</p>';
 
 		echo '<form method="post" style="max-width:720px">';
