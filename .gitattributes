@@ -1,0 +1,12 @@
+# Dev-only paths: omitted from `git archive` (release ZIPs).
+/.gitattributes export-ignore
+/.github export-ignore
+/vendor export-ignore
+/composer.json export-ignore
+/composer.lock export-ignore
+/phpstan.neon export-ignore
+/phpstan-baseline.neon export-ignore
+/package.json export-ignore
+/package-lock.json export-ignore
+/yarn.lock export-ignore
+/pnpm-lock.yaml export-ignore

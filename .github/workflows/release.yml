@@ -1,0 +1,30 @@
+name: Release ZIP
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build WordPress plugin ZIP
+        run: |
+          set -euo pipefail
+          REF="${GITHUB_REF_NAME}"
+          VERSION="${REF#v}"
+          git archive --format=zip \
+            --prefix=kinsta-backup-manager/ \
+            -o "kinsta-backup-manager-${VERSION}.zip" \
+            "${REF}"
+
+      - name: Upload ZIP to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: kinsta-backup-manager-*.zip
